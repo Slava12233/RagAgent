@@ -1,0 +1,68 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+env.example
+
+# IDE specific files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PDF processing temporary files
+tmp/
+temp/
+temp_pdfs/
+rag_agent_pdfs/
+
+# Logs
+*.log
+logs/
+
+# Database files
+*.sqlite
+*.db
+
+# Supabase local development
+.supabase/
+
+# Streamlit
+.streamlit/
+
+# Model files that may be downloaded
+models/
+embeddings/
+
+# Large files that might be used for testing
+*.pdf
+!test_files/*.pdf  # Keep test PDFs in the test directory
+
+# Dependencies
+node_modules/ 
