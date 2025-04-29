@@ -109,6 +109,169 @@ Here are some examples of queries you can ask about your PDF documents:
 - `supabase_init_db.py`: Script for setting up Supabase tables
 - `supabase_vector_search.sql`: SQL function for vector similarity search
 
+## System Architecture
+
+The PDF RAG Agent consists of several interconnected components that work together to process documents, store embeddings, and generate answers to user queries. The following diagrams illustrate the system's architecture and data flow.
+
+### Complete System Flow
+
+```
+┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                     PDF RAG AGENT SYSTEM FLOW                                      │
+└───────────────────────────────────────────────────────────────────────────────────────────────────┘
+                                              │
+                 ┌───────────────────────────┴────────────────────────────┐
+                 │                                                        │
+                 ▼                                                        ▼
+┌────────────────────────────────────┐              ┌────────────────────────────────────┐
+│       DOCUMENT PROCESSING FLOW     │              │         QUERY PROCESSING FLOW       │
+└────────────────────────────────────┘              └────────────────────────────────────┘
+                 │                                                        │
+                 ▼                                                        ▼
+┌────────────────────────────────────┐              ┌────────────────────────────────────┐
+│ 1. User uploads PDF                │              │ 1. User inputs natural language    │
+│    - UI (app.py)                   │              │    query                           │
+│    - CLI (main.py process)         │              │    - Streamlit UI (app.py)         │
+└────────────────┬───────────────────┘              └─────────────────┬──────────────────┘
+                 │                                                     │
+                 ▼                                                     ▼
+┌────────────────────────────────────┐              ┌────────────────────────────────────┐
+│ 2. Extract Text                    │              │ 2. Generate Query Embedding        │
+│    - PyMuPDF/fitz                  │              │    - rag_agent/agent/rag.py        │
+│    - processor.py                  │              │    - OpenAI text-embedding-3-small │
+└────────────────┬───────────────────┘              └─────────────────┬──────────────────┘
+                 │                                                     │
+                 ▼                                                     ▼
+┌────────────────────────────────────┐              ┌────────────────────────────────────┐
+│ 3. Chunk Text                      │              │ 3. Vector Similarity Search        │
+│    - processor.py                  │              │    - Supabase pgvector             │
+│    - Page-based chunking           │              │    - search_chunks SQL function    │
+│    - Context preservation          │              │    - supabase_client.py            │
+└────────────────┬───────────────────┘              └─────────────────┬──────────────────┘
+                 │                                                     │
+                 ▼                                                     ▼
+┌────────────────────────────────────┐              ┌────────────────────────────────────┐
+│ 4. Generate Chunk Embeddings       │              │ 4. Format Retrieved Context        │
+│    - client.py → add_chunk()       │              │    - rag_agent/agent/rag.py        │
+│    - OpenAI text-embedding-3-small │              │    - Add document metadata         │
+└────────────────┬───────────────────┘              └─────────────────┬──────────────────┘
+                 │                                                     │
+                 ▼                                                     ▼
+┌────────────────────────────────────┐              ┌────────────────────────────────────┐
+│ 5. Store in Database               │              │ 5. Generate Answer with LLM        │
+│    - Supabase PostgreSQL           │              │    - OpenAI GPT-4o                 │
+│    - Vector data type (pgvector)   │              │    - PydanticAI agent framework    │
+│    - Documents & chunks tables     │              │    - System prompt with guidelines │
+└────────────────────────────────────┘              └────────────────────────────────────┘
+```
+
+### Embedding Generation Process
+
+```
+┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                               EMBEDDING GENERATION PROCESS                                         │
+└───────────────────────────────────────────────────────────────────────────────────────────────────┘
+                                              │
+                 ┌───────────────────────────┴────────────────────────────┐
+                 │                                                        │
+                 ▼                                                        ▼
+┌────────────────────────────────────┐              ┌────────────────────────────────────┐
+│      DOCUMENT EMBEDDING FLOW       │              │        QUERY EMBEDDING FLOW        │
+└────────────────────────────────────┘              └────────────────────────────────────┘
+                 │                                                        │
+                 ▼                                                        ▼
+┌───────────────────────────────────┐               ┌───────────────────────────────────┐
+│ File: rag_agent/db/client.py     │               │ File: rag_agent/agent/rag.py      │
+│ Method: add_chunk()              │               │ Method: retrieve()                │
+└─────────────────┬─────────────────┘               └─────────────────┬─────────────────┘
+                  │                                                   │
+                  ▼                                                   ▼
+┌───────────────────────────────────┐               ┌───────────────────────────────────┐
+│ Input: Text chunk from PDF        │               │ Input: User's natural language    │
+│        processing                 │               │        query                      │
+└─────────────────┬─────────────────┘               └─────────────────┬─────────────────┘
+                  │                                                   │
+                  ▼                                                   ▼
+┌───────────────────────────────────┐               ┌───────────────────────────────────┐
+│ API Call:                         │               │ API Call:                         │
+│ openai_client.embeddings.create(  │               │ openai_client.embeddings.create(  │
+│   input=content,                  │               │   input=search_query,             │
+│   model="text-embedding-3-small"  │               │   model="text-embedding-3-small"  │
+│ )                                 │               │ )                                 │
+└─────────────────┬─────────────────┘               └─────────────────┬─────────────────┘
+                  │                                                   │
+                  ▼                                                   ▼
+┌───────────────────────────────────┐               ┌───────────────────────────────────┐
+│ Output: 1536-dimensional vector   │               │ Output: 1536-dimensional vector   │
+└─────────────────┬─────────────────┘               └─────────────────┬─────────────────┘
+                  │                                                   │
+                  ▼                                                   ▼
+┌───────────────────────────────────┐               ┌───────────────────────────────────┐
+│ Storage: PostgreSQL with pgvector │               │ Usage: Vector similarity search   │
+│          extension                │               │        using <=> operator         │
+└───────────────────────────────────┘               └───────────────────────────────────┘
+```
+
+### Database Schema
+
+```
+┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                  DATABASE SCHEMA DIAGRAM                                           │
+└───────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────┐              ┌────────────────────────────────────┐
+│              documents             │              │                chunks               │
+├────────────────────────────────────┤              ├────────────────────────────────────┤
+│ id: serial PRIMARY KEY             │◄─────────────┤ document_id: integer REFERENCES    │
+│ title: text                        │              │                 documents(id)       │
+│ filename: text                     │              │ page_number: integer               │
+│ total_pages: integer               │              │ chunk_index: integer               │
+│ created_at: timestamp              │              │ content: text                      │
+└────────────────────────────────────┘              │ embedding: vector(1536)            │
+                                                    │ created_at: timestamp              │
+                                                    └────────────────────────────────────┘
+```
+
+### Vector Similarity Search
+
+```
+┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                             VECTOR SIMILARITY SEARCH CONCEPT                                       │
+└───────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+                                       Query: "What is artificial intelligence?"
+                                                        │
+                                                        │
+                                                        ▼
+                                      ┌─────────────────────────────────┐
+                                      │      Query Embedding Vector     │
+                                      │      [0.021, -0.345, ... ]      │
+                                      └──────────────────┬──────────────┘
+                                                        │
+                                                        │ Vector comparison
+                                                        ▼
+                 ┌─────────────────────────────────────────────────────────────────────┐
+                 │                    Vector space of document chunks                   │
+                 │                                                                     │
+                 │                 Chunk 1      ●                                      │
+                 │                                                                     │
+                 │                                         ● Chunk 4                   │
+                 │                                                                     │
+                 │      ● Chunk 2                                                      │
+                 │                                                     ● Chunk 5       │
+                 │                          ●    ★ Query                              │
+                 │                       Chunk 3                                       │
+                 │                                                                     │
+                 │                               Nearest                               │
+                 │                                │                                    │
+                 │                                │                                    │
+                 │                                ▼                                    │
+                 │                               Chunk 3                              │
+                 │                               Chunk 5                              │
+                 │                               Chunk 1                              │
+                 └─────────────────────────────────────────────────────────────────────┘
+```
+
 ## Supabase Setup
 
 This project uses Supabase PostgreSQL with pgvector for storing and retrieving document embeddings. The database tables are:
