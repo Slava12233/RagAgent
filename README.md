@@ -383,28 +383,7 @@ postgresql://postgres:[YOUR-PASSWORD]@[YOUR-PROJECT-ID].pooler.supabase.co:5432/
 
 Below is a video demonstration of how to use the PDF RAG Agent:
 
-[![PDF RAG Agent Demo](https://cdn.loom.com/sessions/thumbnails/2e6e8a3a1a604ec4b7458a12c226ad41.jpg)](https://www.loom.com/share/2e6e8a3a1a604ec4b7458a12c226ad41)
-
-> **Note**: To replace this placeholder with your own Loom video:
-> 1. Create and upload your demo video to Loom
-> 2. Copy your Loom share URL (https://www.loom.com/share/your-loom-id)
-> 3. Replace "REPLACE-WITH-YOUR-LOOM-ID" in both the image URL and the link URL above
-> 4. The thumbnail will automatically display in the README and link to your video
-
-Alternatively, you can use the HTML embed code from Loom for a directly playable video:
-
-```html
-<div style="position: relative; padding-bottom: 56.25%; height: 0;">
-  <iframe 
-    src="https://www.loom.com/embed/2e6e8a3a1a604ec4b7458a12c226ad41" 
-    frameborder="0" 
-    webkitallowfullscreen 
-    mozallowfullscreen 
-    allowfullscreen 
-    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
-  </iframe>
-</div>
-```
+![PDF RAG Agent Demo](./assets/PDFRAGAgent-GoogleChrome-29April2025-ezgif.com-video-to-gif-converter.gif)
 
 ## License
 
